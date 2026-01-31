@@ -1,0 +1,586 @@
+\documentclass[aspectratio=169,dvipdfmx]{beamer}
+
+% テーマ設定
+\usetheme{Madrid}
+\usecolortheme{default}
+\usefonttheme{professionalfonts}
+
+% 日本語設定
+\usepackage{luatexja}
+\usepackage{luatexja-fontspec}
+\setmainjfont{IPAexGothic}
+\setsansjfont{IPAexGothic}
+
+% パッケージ
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+% タイトル情報
+\title{オーストラリア天気予測}
+\subtitle{明日の雨予測モデルの構築と比較}
+\author{}
+\date{\today}
+\institute{}
+
+% カスタマイズ
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\begin{document}
+
+%============================================
+% スライド1: タイトル
+%============================================
+\begin{frame}
+    \titlepage
+\end{frame}
+
+%============================================
+% スライド2: 目次
+%============================================
+\begin{frame}{目次}
+    \tableofcontents
+\end{frame}
+
+%============================================
+% セクション1: 課題概要
+%============================================
+\section{課題概要}
+
+%============================================
+% スライド3: 課題の背景
+%============================================
+\begin{frame}{課題の背景}
+    \begin{block}{目的}
+        オーストラリアの気象データを用いて、\textbf{明日が雨になるか否か}を予測する2値分類モデルを構築する
+    \end{block}
+
+    \vspace{0.5cm}
+
+    \begin{itemize}
+        \item \textbf{データソース}: Kaggle - Rain in Australia
+        \item \textbf{期間}: 2007年11月〜2017年6月（約10年分）
+        \item \textbf{観測地点}: オーストラリア全土49箇所
+        \item \textbf{応用}: 農業計画、イベント運営、交通管理など
+    \end{itemize}
+\end{frame}
+
+%============================================
+% スライド4: データセット概要
+%============================================
+\begin{frame}{データセット概要}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{基本情報}
+            \begin{itemize}
+                \item レコード数: 145,460件
+                \item 特徴量数: 23カラム
+                \item ターゲット: RainTomorrow (Yes/No)
+            \end{itemize}
+
+            \vspace{0.3cm}
+
+            \textbf{クラス分布（不均衡）}
+            \begin{itemize}
+                \item No（雨なし）: 78\%
+                \item Yes（雨あり）: 22\%
+            \end{itemize}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{figures/target_distribution.png}
+                \caption{ターゲット変数の分布}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+%============================================
+% セクション2: データ分析
+%============================================
+\section{データ分析（EDA）}
+
+%============================================
+% スライド5: 特徴量の種類
+%============================================
+\begin{frame}{特徴量の種類}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{数値変数（16個）}
+            \begin{itemize}
+                \item 気温: MinTemp, MaxTemp, Temp9am, Temp3pm
+                \item 降水: Rainfall, Evaporation
+                \item 日照: Sunshine
+                \item 風速: WindGustSpeed, WindSpeed9am/3pm
+                \item 湿度: Humidity9am/3pm
+                \item 気圧: Pressure9am/3pm
+                \item 雲量: Cloud9am/3pm
+            \end{itemize}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \textbf{カテゴリ変数（6個）}
+            \begin{itemize}
+                \item Location: 49観測地点
+                \item WindGustDir: 突風方向（16方位）
+                \item WindDir9am: 9時の風向
+                \item WindDir3pm: 15時の風向
+                \item RainToday: 本日の雨（Yes/No）
+                \item \textbf{RainTomorrow}: ターゲット
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+%============================================
+% スライド6: 欠損値の分析
+%============================================
+\begin{frame}{欠損値の分析}
+    \begin{columns}[T]
+        \begin{column}{0.45\textwidth}
+            \textbf{高欠損率の変数}
+            \begin{itemize}
+                \item Sunshine: 48.0\%
+                \item Evaporation: 43.2\%
+                \item Cloud3pm: 40.8\%
+                \item Cloud9am: 38.4\%
+            \end{itemize}
+
+            \vspace{0.3cm}
+
+            \textbf{対処方針}
+            \begin{itemize}
+                \item Location別の中央値で補完
+                \item カテゴリ変数は最頻値で補完
+            \end{itemize}
+        \end{column}
+
+        \begin{column}{0.55\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=\textwidth]{figures/missing_values.png}
+                \caption{欠損値ヒートマップ}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+%============================================
+% セクション3: 前処理
+%============================================
+\section{前処理パイプライン}
+
+%============================================
+% スライド7: データ分割
+%============================================
+\begin{frame}{データ分割（時系列）}
+    \begin{block}{時系列分割の重要性}
+        未来のデータで過去を予測することを防ぐため、\textbf{時間順序を保持}してデータを分割
+    \end{block}
+
+    \vspace{0.5cm}
+
+    \begin{table}[h]
+        \centering
+        \begin{tabular}{lccc}
+            \toprule
+            データセット & 期間 & レコード数 & 割合 \\
+            \midrule
+            Train & 〜2015/06 & 約113,000 & 80\% \\
+            Validation & 2015/07〜2016/06 & 約14,000 & 10\% \\
+            Test & 2016/07〜 & 約14,000 & 10\% \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+%============================================
+% スライド8: 前処理の詳細
+%============================================
+\begin{frame}{前処理の詳細}
+    \textbf{1. 欠損値処理}
+    \begin{itemize}
+        \item 数値変数: Location別の中央値で補完
+        \item カテゴリ変数: Location別の最頻値で補完
+        \item RainTomorrow欠損行は削除
+    \end{itemize}
+
+    \vspace{0.3cm}
+
+    \textbf{2. 特徴量エンコーディング}
+    \begin{itemize}
+        \item 風向（16方位）: サイクリカルエンコーディング（$\sin\theta$, $\cos\theta$）
+        \item RainToday: バイナリ（Yes=1, No=0）
+        \item Location: ラベルエンコーディング
+    \end{itemize}
+
+    \vspace{0.3cm}
+
+    \textbf{3. 標準化}
+    \begin{itemize}
+        \item StandardScaler（平均0、標準偏差1）
+        \item Trainデータで学習し、Val/Testに適用
+    \end{itemize}
+\end{frame}
+
+%============================================
+% セクション4: モデル実装
+%============================================
+\section{モデル実装}
+
+%============================================
+% スライド9: 使用モデル
+%============================================
+\begin{frame}{使用モデル}
+    \begin{enumerate}
+        \item \textbf{ロジスティック回帰}（PyTorch実装）
+        \begin{itemize}
+            \item 線形モデル、解釈性が高い
+            \item ベースラインとして使用
+        \end{itemize}
+
+        \vspace{0.3cm}
+
+        \item \textbf{MLP（Multi-Layer Perceptron）}（PyTorch実装）
+        \begin{itemize}
+            \item 非線形関係を学習可能
+            \item BatchNorm + Dropoutで正則化
+        \end{itemize}
+
+        \vspace{0.3cm}
+
+        \item \textbf{Random Forest}（scikit-learn）
+        \begin{itemize}
+            \item アンサンブル手法、過学習に強い
+            \item 特徴量重要度を算出可能
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+%============================================
+% スライド10: クラス不均衡対策
+%============================================
+\begin{frame}{クラス不均衡対策}
+    \begin{block}{問題}
+        Yes:No = 22:78 の不均衡データでは、「すべてNoと予測」でも78\%の精度
+    \end{block}
+
+    \vspace{0.3cm}
+
+    \textbf{対策1: Weighted BCE Loss}
+    \begin{equation}
+        L = -\frac{1}{N}\sum_{i=1}^{N} [w_1 \cdot y_i \log(\hat{y}_i) + w_0 \cdot (1-y_i) \log(1-\hat{y}_i)]
+    \end{equation}
+
+    \textbf{対策2: Focal Loss}
+    \begin{equation}
+        L_{focal} = -\alpha (1-p_t)^\gamma \log(p_t)
+    \end{equation}
+
+    \textbf{対策3: class\_weight='balanced'}（Random Forest）
+\end{frame}
+
+%============================================
+% セクション5: ハイパーパラメータチューニング
+%============================================
+\section{ハイパーパラメータチューニング}
+
+%============================================
+% スライド11: Optunaによる最適化
+%============================================
+\begin{frame}{Optunaによる最適化}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{Optunaの特徴}
+            \begin{itemize}
+                \item TPE（Tree-structured Parzen Estimator）
+                \item 自動枝刈り（Pruning）
+                \item 効率的な探索空間の探索
+            \end{itemize}
+
+            \vspace{0.3cm}
+
+            \textbf{設定}
+            \begin{itemize}
+                \item 各モデル: 50トライアル
+                \item 最適化目標: Val AUC-ROC
+                \item Pruner: MedianPruner
+            \end{itemize}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \textbf{探索パラメータ}
+            \begin{itemize}
+                \item 学習率: $[10^{-5}, 10^{-1}]$
+                \item 正則化: $[10^{-6}, 10^{-2}]$
+                \item バッチサイズ: 64, 128, 256, 512
+                \item 損失関数: Weighted BCE, Focal
+                \item オプティマイザ: SGD, Adam, AdamW
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+%============================================
+% スライド12: ロジスティック回帰のチューニング
+%============================================
+\begin{frame}{ロジスティック回帰のチューニング}
+    \textbf{探索パラメータ}
+    \begin{itemize}
+        \item 学習率: $[10^{-4}, 10^{-1}]$（対数スケール）
+        \item 重み減衰（L2正則化）: $[10^{-6}, 10^{-2}]$
+        \item オプティマイザ: SGD, Adam
+        \item 損失関数: Weighted BCE, Focal Loss
+    \end{itemize}
+
+    \vspace{0.5cm}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/learning_curves/logistic_regression.png}
+        \caption{ロジスティック回帰の学習曲線}
+    \end{figure}
+\end{frame}
+
+%============================================
+% スライド13: MLPのチューニング
+%============================================
+\begin{frame}{MLPのチューニング}
+    \textbf{探索パラメータ}
+    \begin{itemize}
+        \item 隠れ層数: 1〜4層
+        \item 各層のユニット数: 32〜512
+        \item Dropout率: 0.0〜0.5
+        \item オプティマイザ: Adam, AdamW
+    \end{itemize}
+
+    \vspace{0.5cm}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/learning_curves/mlp.png}
+        \caption{MLPの学習曲線}
+    \end{figure}
+\end{frame}
+
+%============================================
+% スライド14: Random Forestのチューニング
+%============================================
+\begin{frame}{Random Forestのチューニング}
+    \textbf{探索パラメータ}
+    \begin{itemize}
+        \item n\_estimators: 50〜500
+        \item max\_depth: 5〜50
+        \item min\_samples\_split: 2〜20
+        \item min\_samples\_leaf: 1〜10
+        \item max\_features: 'sqrt', 'log2', None
+    \end{itemize}
+
+    \vspace{0.5cm}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.6\textwidth]{figures/feature_importance/random_forest.png}
+        \caption{Random Forestの特徴量重要度（上位10）}
+    \end{figure}
+\end{frame}
+
+%============================================
+% セクション6: 結果
+%============================================
+\section{実験結果}
+
+%============================================
+% スライド15: 評価指標
+%============================================
+\begin{frame}{評価指標}
+    \begin{table}[h]
+        \centering
+        \begin{tabular}{lp{8cm}}
+            \toprule
+            指標 & 説明 \\
+            \midrule
+            Accuracy & 全体の正解率 \\
+            Precision & 雨と予測した中で実際に雨だった割合 \\
+            Recall & 実際の雨をどれだけ捕捉できたか \\
+            F1-Score & PrecisionとRecallの調和平均 \\
+            \textbf{AUC-ROC} & ROC曲線下面積（\textbf{主指標}） \\
+            AUC-PR & Precision-Recall曲線下面積 \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    \vspace{0.3cm}
+
+    \begin{block}{AUC-ROCを主指標とする理由}
+        閾値に依存しない評価が可能であり、クラス不均衡データに対して適切
+    \end{block}
+\end{frame}
+
+%============================================
+% スライド16: テストデータでの評価結果
+%============================================
+\begin{frame}{テストデータでの評価結果}
+    \begin{table}[h]
+        \centering
+        \begin{tabular}{lcccccc}
+            \toprule
+            モデル & Accuracy & Precision & Recall & F1 & AUC-ROC & AUC-PR \\
+            \midrule
+            Logistic Reg. & 0.785 & 0.526 & 0.742 & 0.616 & 0.852 & 0.674 \\
+            \textbf{MLP} & 0.797 & 0.542 & 0.785 & 0.641 & \textbf{0.875} & 0.720 \\
+            Random Forest & 0.843 & 0.764 & 0.463 & 0.577 & 0.873 & 0.715 \\
+            \bottomrule
+        \end{tabular}
+        \caption{各モデルの評価指標（テストデータ）}
+    \end{table}
+
+    \vspace{0.3cm}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/model_comparison.png}
+        \caption{評価指標の比較}
+    \end{figure}
+\end{frame}
+
+%============================================
+% スライド17: ROCカーブ比較
+%============================================
+\begin{frame}{ROCカーブ比較}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.65\textwidth]{figures/roc_curves/comparison.png}
+        \caption{ROCカーブの比較}
+    \end{figure}
+
+    \begin{itemize}
+        \item 曲線が左上に近いほど性能が良い
+        \item 対角線はランダム予測（AUC=0.5）
+    \end{itemize}
+\end{frame}
+
+%============================================
+% スライド18: 混同行列
+%============================================
+\begin{frame}{混同行列}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.9\textwidth]{figures/confusion_matrices/comparison.png}
+        \caption{各モデルの混同行列}
+    \end{figure}
+\end{frame}
+
+%============================================
+% セクション7: 考察
+%============================================
+\section{考察}
+
+%============================================
+% スライド19: モデル比較の考察
+%============================================
+\begin{frame}{モデル比較の考察}
+    \textbf{Random Forestが最高性能を達成}
+    \begin{itemize}
+        \item 非線形関係を効果的に捉える
+        \item 特徴量間の相互作用を自動学習
+        \item アンサンブル効果で過学習を抑制
+    \end{itemize}
+
+    \vspace{0.3cm}
+
+    \textbf{MLPの特徴}
+    \begin{itemize}
+        \item 良好な性能だがチューニングに時間がかかる
+        \item 適切なアーキテクチャ選択が重要
+        \item GPU活用で学習を高速化
+    \end{itemize}
+
+    \vspace{0.3cm}
+
+    \textbf{ロジスティック回帰の特徴}
+    \begin{itemize}
+        \item シンプルで解釈性が高い
+        \item 非線形関係の捕捉に限界
+        \item ベースラインとして有用
+    \end{itemize}
+\end{frame}
+
+%============================================
+% スライド20: 重要な特徴量
+%============================================
+\begin{frame}{重要な特徴量}
+    Random Forestの特徴量重要度分析から:
+
+    \vspace{0.3cm}
+
+    \textbf{上位の特徴量}
+    \begin{enumerate}
+        \item \textbf{Humidity3pm}: 午後の湿度が最重要
+        \item \textbf{Pressure3pm}: 気圧も重要な予測因子
+        \item \textbf{Sunshine}: 日照時間
+        \item \textbf{Cloud3pm}: 午後の雲量
+        \item \textbf{RainToday}: 本日の雨の有無
+    \end{enumerate}
+
+    \vspace{0.3cm}
+
+    \begin{block}{気象学的解釈}
+        午後の湿度・気圧・雲量は、翌日の降雨を予測する上で物理的に妥当な指標
+    \end{block}
+\end{frame}
+
+%============================================
+% セクション8: まとめ
+%============================================
+\section{まとめ}
+
+%============================================
+% スライド21: まとめ
+%============================================
+\begin{frame}{まとめ}
+    \textbf{本研究の成果}
+    \begin{enumerate}
+        \item 3種類のモデル（ロジスティック回帰、MLP、Random Forest）を実装・比較
+        \item Optunaによる体系的なハイパーパラメータチューニングを実施
+        \item クラス不均衡に対する適切な対策（Weighted Loss, class\_weight）を適用
+        \item Random Forestが最高のAUC-ROCを達成
+    \end{enumerate}
+
+    \vspace{0.5cm}
+
+    \textbf{今後の課題}
+    \begin{itemize}
+        \item 勾配ブースティング（LightGBM、XGBoost）の追加
+        \item 時系列特徴量（ラグ特徴量、移動平均）の導入
+        \item モデルアンサンブル（スタッキング）の検討
+        \item より多くのトライアルでのハイパーパラメータ探索
+    \end{itemize}
+\end{frame}
+
+%============================================
+% スライド22: 参考文献
+%============================================
+\begin{frame}{参考文献}
+    \begin{thebibliography}{9}
+        \bibitem{kaggle}
+        Young, J. (2017). Rain in Australia. Kaggle Dataset.
+        \url{https://www.kaggle.com/datasets/jsphyg/weather-dataset-rattle-package}
+
+        \bibitem{pytorch}
+        Paszke, A., et al. (2019). PyTorch: An Imperative Style, High-Performance Deep Learning Library. NeurIPS.
+
+        \bibitem{optuna}
+        Akiba, T., et al. (2019). Optuna: A Next-generation Hyperparameter Optimization Framework. KDD.
+
+        \bibitem{sklearn}
+        Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. JMLR.
+    \end{thebibliography}
+\end{frame}
+
+\end{document}

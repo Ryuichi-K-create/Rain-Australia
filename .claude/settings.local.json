@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(uv init:*)",
+      "Bash(uv add:*)",
+      "Bash(uv run jupyter:*)",
+      "Bash(uv run python:*)",
+      "Bash(ls:*)"
     ]
   }
 }
