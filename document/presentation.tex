@@ -1,22 +1,30 @@
-\documentclass[aspectratio=169,dvipdfmx]{beamer}
+\documentclass[aspectratio=169,dvipdfmx,unicode]{beamer}
 
 % テーマ設定
 \usetheme{Madrid}
 \usecolortheme{default}
 \usefonttheme{professionalfonts}
 
-% 日本語設定
-\usepackage{luatexja}
-\usepackage{luatexja-fontspec}
-\setmainjfont{IPAexGothic}
-\setsansjfont{IPAexGothic}
+% 日本語設定（upLaTeX用）
+\usepackage{pxjahyper}
+\usepackage{minijs}
+\renewcommand{\kanjifamilydefault}{\gtdefault}
 
 % パッケージ
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{multirow}
 \usepackage{amsmath}
-\usepackage{hyperref}
+\usepackage{url}
+
+% 画像が存在しない場合のダミー設定
+\usepackage{ifthen}
+\newcommand{\includefigure}[2][width=\textwidth]{%
+  \IfFileExists{#2}{%
+    \includegraphics[#1]{#2}%
+  }{%
+    \fbox{\parbox{0.8\textwidth}{\centering\vspace{1cm}[画像未生成]\vspace{1cm}}}%
+  }%
+}
 
 % タイトル情報
 \title{オーストラリア天気予測}
@@ -93,7 +101,7 @@
         \begin{column}{0.5\textwidth}
             \begin{figure}
                 \centering
-                \includegraphics[width=\textwidth]{figures/target_distribution.png}
+                \includefigure[width=\textwidth]{figures/target_distribution.png}
                 \caption{ターゲット変数の分布}
             \end{figure}
         \end{column}
@@ -163,7 +171,7 @@
         \begin{column}{0.55\textwidth}
             \begin{figure}
                 \centering
-                \includegraphics[width=\textwidth]{figures/missing_values.png}
+                \includefigure[width=\textwidth]{figures/missing_values.png}
                 \caption{欠損値ヒートマップ}
             \end{figure}
         \end{column}
@@ -342,7 +350,7 @@
 
     \begin{figure}
         \centering
-        \includegraphics[width=0.7\textwidth]{figures/learning_curves/logistic_regression.png}
+        \includefigure[width=0.7\textwidth]{figures/learning_curves/logistic_regression.png}
         \caption{ロジスティック回帰の学習曲線}
     \end{figure}
 \end{frame}
@@ -363,7 +371,7 @@
 
     \begin{figure}
         \centering
-        \includegraphics[width=0.7\textwidth]{figures/learning_curves/mlp.png}
+        \includefigure[width=0.7\textwidth]{figures/learning_curves/mlp.png}
         \caption{MLPの学習曲線}
     \end{figure}
 \end{frame}
@@ -385,7 +393,7 @@
 
     \begin{figure}
         \centering
-        \includegraphics[width=0.6\textwidth]{figures/feature_importance/random_forest.png}
+        \includefigure[width=0.6\textwidth]{figures/feature_importance/random_forest.png}
         \caption{Random Forestの特徴量重要度（上位10）}
     \end{figure}
 \end{frame}
@@ -444,7 +452,7 @@
 
     \begin{figure}
         \centering
-        \includegraphics[width=0.7\textwidth]{figures/model_comparison.png}
+        \includefigure[width=0.7\textwidth]{figures/model_comparison.png}
         \caption{評価指標の比較}
     \end{figure}
 \end{frame}
@@ -455,7 +463,7 @@
 \begin{frame}{ROCカーブ比較}
     \begin{figure}
         \centering
-        \includegraphics[width=0.65\textwidth]{figures/roc_curves/comparison.png}
+        \includefigure[width=0.65\textwidth]{figures/roc_curves/comparison.png}
         \caption{ROCカーブの比較}
     \end{figure}
 
@@ -471,7 +479,7 @@
 \begin{frame}{混同行列}
     \begin{figure}
         \centering
-        \includegraphics[width=0.9\textwidth]{figures/confusion_matrices/comparison.png}
+        \includefigure[width=0.9\textwidth]{figures/confusion_matrices/comparison.png}
         \caption{各モデルの混同行列}
     \end{figure}
 \end{frame}
