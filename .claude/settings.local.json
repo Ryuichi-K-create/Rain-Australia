@@ -8,7 +8,13 @@
       "Bash(uv run python:*)",
       "Bash(ls:*)",
       "Bash(uplatex:*)",
-      "Bash(dvipdfmx:*)"
+      "Bash(dvipdfmx:*)",
+      "Bash(conda activate:*)",
+      "Bash(python:*)",
+      "Bash(cmd /c \"conda activate CENT000 && python -c \"\"from pptx import Presentation; print\\(''python-pptx: OK''\\)\"\"\")",
+      "Bash(C:UsersScentanaconda3envsCENT000python.exe -c \"from pptx import Presentation; print\\(''python-pptx: OK''\\)\")",
+      "Bash(cmd /c \"C:\\\\Users\\\\Scent\\\\anaconda3\\\\envs\\\\CENT000\\\\python.exe -c \"\"from pptx import Presentation; print\\(''python-pptx: OK''\\)\"\"\")",
+      "Bash(powershell -Command:*)"
     ]
   }
 }

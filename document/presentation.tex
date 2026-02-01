@@ -5,10 +5,13 @@
 \usecolortheme{default}
 \usefonttheme{professionalfonts}
 
-% 日本語設定（upLaTeX用）
+% 日本語設定（upLaTeX用）- 明朝体
 \usepackage{pxjahyper}
 \usepackage{minijs}
-\renewcommand{\kanjifamilydefault}{\gtdefault}
+\renewcommand{\kanjifamilydefault}{\mcdefault}
+
+% 英字フォント設定（Times系）- Beamer標準のserifフォントを使用
+\usefonttheme{serif}
 
 % パッケージ
 \usepackage{graphicx}
@@ -47,37 +50,39 @@
 \end{frame}
 
 %============================================
-% スライド2: 目次
-%============================================
-\begin{frame}{目次}
-    \tableofcontents
-\end{frame}
-
-%============================================
 % セクション1: 課題概要
 %============================================
 \section{課題概要}
 
 %============================================
-% スライド3: 課題の背景
+% スライド2: 課題の背景・テーマ選定理由
 %============================================
 \begin{frame}{課題の背景}
     \begin{block}{目的}
         オーストラリアの気象データを用いて、\textbf{明日が雨になるか否か}を予測する2値分類モデルを構築する
     \end{block}
 
-    \vspace{0.5cm}
+    \vspace{0.3cm}
 
+    \textbf{なぜこのテーマを選んだか}
     \begin{itemize}
-        \item \textbf{データソース}: Kaggle - Rain in Australia
-        \item \textbf{期間}: 2007年11月〜2017年6月（約10年分）
-        \item \textbf{観測地点}: オーストラリア全土49箇所
-        \item \textbf{応用}: 農業計画、イベント運営、交通管理など
+        \item 金沢市は年間降水量が多く、雨の日を事前に予測できると日常生活で役立つ
+        \item 気象データを用いた機械学習予測に興味があった
+        \item 2値分類の実践的な題材として適切だった
+    \end{itemize}
+
+    \vspace{0.3cm}
+
+    \textbf{日常生活・研究への応用}
+    \begin{itemize}
+        \item 外出・イベントの計画立案
+        \item 農業における作業スケジュール管理
+        \item 交通機関の運行計画への活用
     \end{itemize}
 \end{frame}
 
 %============================================
-% スライド4: データセット概要
+% スライド3: データセット概要
 %============================================
 \begin{frame}{データセット概要}
     \begin{columns}[T]
@@ -87,6 +92,8 @@
                 \item レコード数: 145,460件
                 \item 特徴量数: 23カラム
                 \item ターゲット: RainTomorrow (Yes/No)
+                \item 期間: 2007年11月〜2017年6月
+                \item 観測地点: オーストラリア全土49箇所
             \end{itemize}
 
             \vspace{0.3cm}
@@ -96,6 +103,10 @@
                 \item No（雨なし）: 78\%
                 \item Yes（雨あり）: 22\%
             \end{itemize}
+
+            \vspace{0.2cm}
+            {\small 出典: Young, J. (2017). Rain in Australia. Kaggle Dataset.\\
+            \url{https://www.kaggle.com/datasets/jsphyg/weather-dataset-rattle-package}}
         \end{column}
 
         \begin{column}{0.5\textwidth}
@@ -111,10 +122,10 @@
 %============================================
 % セクション2: データ分析
 %============================================
-\section{データ分析（EDA）}
+\section{データ分析}
 
 %============================================
-% スライド5: 特徴量の種類
+% スライド4: 特徴量の種類
 %============================================
 \begin{frame}{特徴量の種類}
     \begin{columns}[T]
@@ -146,45 +157,12 @@
 \end{frame}
 
 %============================================
-% スライド6: 欠損値の分析
-%============================================
-\begin{frame}{欠損値の分析}
-    \begin{columns}[T]
-        \begin{column}{0.45\textwidth}
-            \textbf{高欠損率の変数}
-            \begin{itemize}
-                \item Sunshine: 48.0\%
-                \item Evaporation: 43.2\%
-                \item Cloud3pm: 40.8\%
-                \item Cloud9am: 38.4\%
-            \end{itemize}
-
-            \vspace{0.3cm}
-
-            \textbf{対処方針}
-            \begin{itemize}
-                \item Location別の中央値で補完
-                \item カテゴリ変数は最頻値で補完
-            \end{itemize}
-        \end{column}
-
-        \begin{column}{0.55\textwidth}
-            \begin{figure}
-                \centering
-                \includefigure[width=\textwidth]{figures/missing_values.png}
-                \caption{欠損値ヒートマップ}
-            \end{figure}
-        \end{column}
-    \end{columns}
-\end{frame}
-
-%============================================
 % セクション3: 前処理
 %============================================
-\section{前処理パイプライン}
+\section{前処理}
 
 %============================================
-% スライド7: データ分割
+% スライド5: データ分割
 %============================================
 \begin{frame}{データ分割（時系列）}
     \begin{block}{時系列分割の重要性}
@@ -208,7 +186,7 @@
 \end{frame}
 
 %============================================
-% スライド8: 前処理の詳細
+% スライド6: 前処理の詳細
 %============================================
 \begin{frame}{前処理の詳細}
     \textbf{1. 欠損値処理}
@@ -242,55 +220,71 @@
 \section{モデル実装}
 
 %============================================
-% スライド9: 使用モデル
+% スライド7: 使用モデル
 %============================================
 \begin{frame}{使用モデル}
     \begin{enumerate}
         \item \textbf{ロジスティック回帰}（PyTorch実装）
         \begin{itemize}
-            \item 線形モデル、解釈性が高い
-            \item ベースラインとして使用
+            \item 構造: 入力層 → 出力層（1ユニット）のシンプルな線形モデル
+            \item 特長: 解釈性が高く、各特徴量の重みから予測への寄与度がわかる
+            \item 用途: ベースラインモデルとして使用
         \end{itemize}
 
         \vspace{0.3cm}
 
         \item \textbf{MLP（Multi-Layer Perceptron）}（PyTorch実装）
         \begin{itemize}
-            \item 非線形関係を学習可能
-            \item BatchNorm + Dropoutで正則化
+            \item 構造: 入力層 → 隠れ層（複数）→ 出力層の多層ニューラルネット
+            \item 特長: 非線形な関係を学習可能、BatchNormとDropoutで過学習を抑制
+            \item 用途: より複雑なパターンの学習
         \end{itemize}
 
         \vspace{0.3cm}
 
         \item \textbf{Random Forest}（scikit-learn）
         \begin{itemize}
-            \item アンサンブル手法、過学習に強い
-            \item 特徴量重要度を算出可能
+            \item 構造: 複数の決定木を並列に学習し、多数決で予測するアンサンブル手法
+            \item 特長: 過学習に強く、特徴量重要度を算出可能
+            \item 用途: 非線形関係の効果的な捕捉
         \end{itemize}
     \end{enumerate}
 \end{frame}
 
 %============================================
-% スライド10: クラス不均衡対策
+% スライド8: クラス不均衡対策
 %============================================
 \begin{frame}{クラス不均衡対策}
-    \begin{block}{問題}
-        Yes:No = 22:78 の不均衡データでは、「すべてNoと予測」でも78\%の精度
+    \begin{block}{問題点}
+        Yes:No = 22:78 の不均衡データでは、「すべてNoと予測」しても78\%の精度になってしまう
     \end{block}
 
     \vspace{0.3cm}
 
-    \textbf{対策1: Weighted BCE Loss}
-    \begin{equation}
-        L = -\frac{1}{N}\sum_{i=1}^{N} [w_1 \cdot y_i \log(\hat{y}_i) + w_0 \cdot (1-y_i) \log(1-\hat{y}_i)]
-    \end{equation}
+    \textbf{実施した対策}
 
-    \textbf{対策2: Focal Loss}
-    \begin{equation}
-        L_{focal} = -\alpha (1-p_t)^\gamma \log(p_t)
-    \end{equation}
+    \vspace{0.2cm}
 
-    \textbf{対策3: class\_weight='balanced'}（Random Forest）
+    \begin{enumerate}
+        \item \textbf{ロジスティック回帰・MLP}（PyTorchモデル）
+        \begin{itemize}
+            \item 損失関数に重み付けを導入（Weighted BCE Loss）
+            \item 少数クラス（雨あり）の誤分類に対するペナルティを大きく設定
+            \item 重み比率: No:Yes = 1:3.5（クラス比率の逆数）
+        \end{itemize}
+
+        \vspace{0.2cm}
+
+        \item \textbf{Random Forest}（scikit-learn）
+        \begin{itemize}
+            \item class\_weight='balanced' パラメータを使用
+            \item 各クラスのサンプル数に応じて自動的に重みを調整
+        \end{itemize}
+    \end{enumerate}
+
+    \vspace{0.3cm}
+
+    これらの対策により、少数クラス（雨あり）の検出率を向上させた
 \end{frame}
 
 %============================================
@@ -299,103 +293,63 @@
 \section{ハイパーパラメータチューニング}
 
 %============================================
-% スライド11: Optunaによる最適化
-%============================================
-\begin{frame}{Optunaによる最適化}
-    \begin{columns}[T]
-        \begin{column}{0.5\textwidth}
-            \textbf{Optunaの特徴}
-            \begin{itemize}
-                \item TPE（Tree-structured Parzen Estimator）
-                \item 自動枝刈り（Pruning）
-                \item 効率的な探索空間の探索
-            \end{itemize}
-
-            \vspace{0.3cm}
-
-            \textbf{設定}
-            \begin{itemize}
-                \item 各モデル: 50トライアル
-                \item 最適化目標: Val AUC-ROC
-                \item Pruner: MedianPruner
-            \end{itemize}
-        \end{column}
-
-        \begin{column}{0.5\textwidth}
-            \textbf{探索パラメータ}
-            \begin{itemize}
-                \item 学習率: $[10^{-5}, 10^{-1}]$
-                \item 正則化: $[10^{-6}, 10^{-2}]$
-                \item バッチサイズ: 64, 128, 256, 512
-                \item 損失関数: Weighted BCE, Focal
-                \item オプティマイザ: SGD, Adam, AdamW
-            \end{itemize}
-        \end{column}
-    \end{columns}
-\end{frame}
-
-%============================================
-% スライド12: ロジスティック回帰のチューニング
+% スライド9: ロジスティック回帰のチューニング
 %============================================
 \begin{frame}{ロジスティック回帰のチューニング}
-    \textbf{探索パラメータ}
+    \textbf{探索したハイパーパラメータ}
     \begin{itemize}
-        \item 学習率: $[10^{-4}, 10^{-1}]$（対数スケール）
-        \item 重み減衰（L2正則化）: $[10^{-6}, 10^{-2}]$
-        \item オプティマイザ: SGD, Adam
-        \item 損失関数: Weighted BCE, Focal Loss
+        \item 学習率: モデルの重み更新の大きさを制御するパラメータ
+        \item 重み減衰（L2正則化）: 過学習を防ぐための正則化強度
+        \item オプティマイザ: 最適化アルゴリズム（SGD, Adam）
+        \item 損失関数: Weighted BCE Loss
     \end{itemize}
 
-    \vspace{0.5cm}
+    \vspace{0.3cm}
 
     \begin{figure}
         \centering
-        \includefigure[width=0.7\textwidth]{figures/learning_curves/logistic_regression.png}
-        \caption{ロジスティック回帰の学習曲線}
+        \includefigure[width=0.6\textwidth]{figures/learning_curves/logistic_regression.png}
+        \caption{ロジスティック回帰の学習曲線（エポックごとの損失とAccuracyの推移）}
     \end{figure}
 \end{frame}
 
 %============================================
-% スライド13: MLPのチューニング
+% スライド10: MLPのチューニング
 %============================================
 \begin{frame}{MLPのチューニング}
-    \textbf{探索パラメータ}
+    \textbf{探索したハイパーパラメータ}
     \begin{itemize}
-        \item 隠れ層数: 1〜4層
-        \item 各層のユニット数: 32〜512
-        \item Dropout率: 0.0〜0.5
+        \item 隠れ層数・ユニット数: ネットワークの深さと幅
+        \item Dropout率: 過学習防止のためのドロップアウト確率
+        \item 学習率・重み減衰: ロジスティック回帰と同様
         \item オプティマイザ: Adam, AdamW
     \end{itemize}
 
-    \vspace{0.5cm}
+    \vspace{0.3cm}
 
     \begin{figure}
         \centering
-        \includefigure[width=0.7\textwidth]{figures/learning_curves/mlp.png}
-        \caption{MLPの学習曲線}
+        \includefigure[width=0.6\textwidth]{figures/learning_curves/mlp.png}
+        \caption{MLPの学習曲線（エポックごとの損失とAccuracyの推移）}
     \end{figure}
 \end{frame}
 
 %============================================
-% スライド14: Random Forestのチューニング
+% スライド11: Random Forestのチューニング
 %============================================
 \begin{frame}{Random Forestのチューニング}
-    \textbf{探索パラメータ}
+    \textbf{探索したハイパーパラメータ}
     \begin{itemize}
-        \item n\_estimators: 50〜500
-        \item max\_depth: 5〜50
-        \item min\_samples\_split: 2〜20
-        \item min\_samples\_leaf: 1〜10
-        \item max\_features: 'sqrt', 'log2', None
+        \item n\_estimators: 決定木の数（多いほど安定するが計算コスト増）
+        \item max\_depth: 各決定木の最大深さ（深いほど複雑なパターンを学習）
+        \item min\_samples\_split: ノード分割に必要な最小サンプル数
+        \item min\_samples\_leaf: 葉ノードに必要な最小サンプル数
+        \item max\_features: 各分割で考慮する特徴量の数
     \end{itemize}
 
-    \vspace{0.5cm}
+    \vspace{0.3cm}
 
-    \begin{figure}
-        \centering
-        \includefigure[width=0.6\textwidth]{figures/feature_importance/random_forest.png}
-        \caption{Random Forestの特徴量重要度（上位10）}
-    \end{figure}
+    Random Forestは決定木のアンサンブルであり、学習曲線ではなく上記パラメータの組み合わせを探索して最適なモデルを選定した
 \end{frame}
 
 %============================================
@@ -404,45 +358,46 @@
 \section{実験結果}
 
 %============================================
-% スライド15: 評価指標
+% スライド12: 評価指標
 %============================================
 \begin{frame}{評価指標}
     \begin{table}[h]
         \centering
-        \begin{tabular}{lp{8cm}}
+        \begin{tabular}{lp{9cm}}
             \toprule
             指標 & 説明 \\
             \midrule
-            Accuracy & 全体の正解率 \\
-            Precision & 雨と予測した中で実際に雨だった割合 \\
-            Recall & 実際の雨をどれだけ捕捉できたか \\
-            F1-Score & PrecisionとRecallの調和平均 \\
-            \textbf{AUC-ROC} & ROC曲線下面積（\textbf{主指標}） \\
-            AUC-PR & Precision-Recall曲線下面積 \\
+            Accuracy & 全体の正解率。全予測のうち正しく分類できた割合 \\
+            \midrule
+            Precision & 「雨」と予測したもののうち、実際に雨だった割合。誤警報を減らしたい場合に重視 \\
+            \midrule
+            Recall & 実際の雨の日のうち、正しく「雨」と予測できた割合。見逃しを減らしたい場合に重視 \\
+            \midrule
+            F1-Score & PrecisionとRecallの調和平均。両者のバランスを評価 \\
             \bottomrule
         \end{tabular}
     \end{table}
 
     \vspace{0.3cm}
 
-    \begin{block}{AUC-ROCを主指標とする理由}
-        閾値に依存しない評価が可能であり、クラス不均衡データに対して適切
+    \begin{block}{不均衡データでの注意点}
+        Accuracyだけでは正しく評価できない。Precision, Recall, F1-Scoreを総合的に見ることが重要
     \end{block}
 \end{frame}
 
 %============================================
-% スライド16: テストデータでの評価結果
+% スライド13: テストデータでの評価結果
 %============================================
 \begin{frame}{テストデータでの評価結果}
     \begin{table}[h]
         \centering
-        \begin{tabular}{lcccccc}
+        \begin{tabular}{lcccc}
             \toprule
-            モデル & Accuracy & Precision & Recall & F1 & AUC-ROC & AUC-PR \\
+            モデル & Accuracy & Precision & Recall & F1-Score \\
             \midrule
-            Logistic Reg. & 0.785 & 0.526 & 0.742 & 0.616 & 0.852 & 0.674 \\
-            \textbf{MLP} & 0.797 & 0.542 & 0.785 & 0.641 & \textbf{0.875} & 0.720 \\
-            Random Forest & 0.843 & 0.764 & 0.463 & 0.577 & 0.873 & 0.715 \\
+            ロジスティック回帰 & 0.785 & 0.526 & 0.742 & 0.616 \\
+            MLP & 0.797 & 0.542 & 0.785 & 0.641 \\
+            \textbf{Random Forest} & \textbf{0.843} & \textbf{0.764} & 0.463 & 0.577 \\
             \bottomrule
         \end{tabular}
         \caption{各モデルの評価指標（テストデータ）}
@@ -450,36 +405,21 @@
 
     \vspace{0.3cm}
 
-    \begin{figure}
-        \centering
-        \includefigure[width=0.7\textwidth]{figures/model_comparison.png}
-        \caption{評価指標の比較}
-    \end{figure}
-\end{frame}
-
-%============================================
-% スライド17: ROCカーブ比較
-%============================================
-\begin{frame}{ROCカーブ比較}
-    \begin{figure}
-        \centering
-        \includefigure[width=0.65\textwidth]{figures/roc_curves/comparison.png}
-        \caption{ROCカーブの比較}
-    \end{figure}
-
+    \textbf{結果の概要}
     \begin{itemize}
-        \item 曲線が左上に近いほど性能が良い
-        \item 対角線はランダム予測（AUC=0.5）
+        \item Random ForestがAccuracyとPrecisionで最高
+        \item MLPがRecallとF1-Scoreで最高
+        \item ロジスティック回帰はベースラインとして妥当な性能
     \end{itemize}
 \end{frame}
 
 %============================================
-% スライド18: 混同行列
+% スライド14: 混同行列
 %============================================
 \begin{frame}{混同行列}
     \begin{figure}
         \centering
-        \includefigure[width=0.9\textwidth]{figures/confusion_matrices/comparison.png}
+        \includefigure[width=0.85\textwidth]{figures/confusion_matrices/comparison.png}
         \caption{各モデルの混同行列}
     \end{figure}
 \end{frame}
@@ -490,57 +430,68 @@
 \section{考察}
 
 %============================================
-% スライド19: モデル比較の考察
+% スライド15: モデル比較の考察
 %============================================
 \begin{frame}{モデル比較の考察}
-    \textbf{Random Forestが最高性能を達成}
+    \textbf{Random Forestの高いAccuracy・Precisionの理由}
     \begin{itemize}
-        \item 非線形関係を効果的に捉える
-        \item 特徴量間の相互作用を自動学習
-        \item アンサンブル効果で過学習を抑制
+        \item 決定木のアンサンブルにより、特徴量間の複雑な相互作用を捉えられた
+        \item 気象データは非線形な関係が多く、木構造との相性が良かった
+        \item ただしRecallが低く、雨の日の見逃しが多い
     \end{itemize}
 
     \vspace{0.3cm}
 
-    \textbf{MLPの特徴}
+    \textbf{MLPの高いRecall・F1-Scoreの理由}
     \begin{itemize}
-        \item 良好な性能だがチューニングに時間がかかる
-        \item 適切なアーキテクチャ選択が重要
-        \item GPU活用で学習を高速化
+        \item 重み付き損失関数により、少数クラス（雨あり）を積極的に検出
+        \item 多層構造により非線形パターンを学習できた
+        \item Precisionは低めで、誤警報が多い傾向
     \end{itemize}
 
     \vspace{0.3cm}
 
-    \textbf{ロジスティック回帰の特徴}
+    \textbf{ロジスティック回帰の限界}
     \begin{itemize}
-        \item シンプルで解釈性が高い
-        \item 非線形関係の捕捉に限界
-        \item ベースラインとして有用
+        \item 線形モデルのため、非線形な関係の捕捉に限界がある
+        \item しかしベースラインとして、他モデルの改善度を測る基準になった
     \end{itemize}
 \end{frame}
 
 %============================================
-% スライド20: 重要な特徴量
+% スライド16: 重要な特徴量
 %============================================
 \begin{frame}{重要な特徴量}
     Random Forestの特徴量重要度分析から:
 
-    \vspace{0.3cm}
+    \vspace{0.2cm}
 
-    \textbf{上位の特徴量}
-    \begin{enumerate}
-        \item \textbf{Humidity3pm}: 午後の湿度が最重要
-        \item \textbf{Pressure3pm}: 気圧も重要な予測因子
-        \item \textbf{Sunshine}: 日照時間
-        \item \textbf{Cloud3pm}: 午後の雲量
-        \item \textbf{RainToday}: 本日の雨の有無
-    \end{enumerate}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textbf{上位の特徴量}
+            \begin{enumerate}
+                \item \textbf{Humidity3pm}: 午後の湿度
+                \item \textbf{Pressure3pm}: 午後の気圧
+                \item \textbf{Sunshine}: 日照時間
+                \item \textbf{Cloud3pm}: 午後の雲量
+                \item \textbf{RainToday}: 本日の雨の有無
+            \end{enumerate}
 
-    \vspace{0.3cm}
+            \vspace{0.3cm}
 
-    \begin{block}{気象学的解釈}
-        午後の湿度・気圧・雲量は、翌日の降雨を予測する上で物理的に妥当な指標
-    \end{block}
+            \begin{block}{気象学的解釈}
+                午後の湿度・気圧・雲量は、翌日の降雨を予測する上で物理的に妥当な指標
+            \end{block}
+        \end{column}
+
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \centering
+                \includefigure[width=\textwidth]{figures/feature_importance/random_forest.png}
+                \caption{特徴量重要度（上位10）}
+            \end{figure}
+        \end{column}
+    \end{columns}
 \end{frame}
 
 %============================================
@@ -549,46 +500,25 @@
 \section{まとめ}
 
 %============================================
-% スライド21: まとめ
+% スライド17: まとめ
 %============================================
 \begin{frame}{まとめ}
     \textbf{本研究の成果}
     \begin{enumerate}
         \item 3種類のモデル（ロジスティック回帰、MLP、Random Forest）を実装・比較
-        \item Optunaによる体系的なハイパーパラメータチューニングを実施
-        \item クラス不均衡に対する適切な対策（Weighted Loss, class\_weight）を適用
-        \item Random Forestが最高のAUC-ROCを達成
+        \item 体系的なハイパーパラメータチューニングを実施
+        \item クラス不均衡に対する適切な対策（重み付き損失関数）を適用
+        \item Random ForestがAccuracy 0.843、Precision 0.764で最高性能を達成
     \end{enumerate}
 
     \vspace{0.5cm}
 
     \textbf{今後の課題}
     \begin{itemize}
-        \item 勾配ブースティング（LightGBM、XGBoost）の追加
+        \item 勾配ブースティング（LightGBM、XGBoost）の追加検討
         \item 時系列特徴量（ラグ特徴量、移動平均）の導入
-        \item モデルアンサンブル（スタッキング）の検討
-        \item より多くのトライアルでのハイパーパラメータ探索
+        \item Recallを重視したモデル調整（雨の見逃しを減らす）
     \end{itemize}
-\end{frame}
-
-%============================================
-% スライド22: 参考文献
-%============================================
-\begin{frame}{参考文献}
-    \begin{thebibliography}{9}
-        \bibitem{kaggle}
-        Young, J. (2017). Rain in Australia. Kaggle Dataset.
-        \url{https://www.kaggle.com/datasets/jsphyg/weather-dataset-rattle-package}
-
-        \bibitem{pytorch}
-        Paszke, A., et al. (2019). PyTorch: An Imperative Style, High-Performance Deep Learning Library. NeurIPS.
-
-        \bibitem{optuna}
-        Akiba, T., et al. (2019). Optuna: A Next-generation Hyperparameter Optimization Framework. KDD.
-
-        \bibitem{sklearn}
-        Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. JMLR.
-    \end{thebibliography}
 \end{frame}
 
 \end{document}
